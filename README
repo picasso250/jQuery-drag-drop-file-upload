@@ -4,15 +4,17 @@ Usage:
 Include the plugin JS and CSS files in your page. Call the following on your page:
 
 $('input[type="file"]').dropUpload({
+  'method'       : 'batch',
 	'uploadUrl'		 : '/upload',
 	'uploaded'		 : function(resp) { },
 	'dropClass' 	 : 'file-drop',
 	'dropHoverClass' : 'file-drop-hover',
 	'defaultText'  	 : 'Drop your files here!',
-	'hoverText'		 : 'Let go to upload!'	
+	'hoverText'		 : 'Let go to upload!'
 });
 
 Options:
+	method: upload 'batch'-ly or 'one' a time, if it's 'one', uploaded(xhr, index, total)
 	uploadUrl: URL where the files should be POST'ed to,
 	uploaded: Callback function that is fired when the files have been uploaded,
 	dropClass: The default class to apply to the drop area,

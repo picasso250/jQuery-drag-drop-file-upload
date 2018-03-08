@@ -16,8 +16,9 @@
 
 
 (function($) {
-	
+
 	var settings = {
+		'method'	: 'batch', // batch | one
 		'uploadUrl'	 : '/upload', // URL to POST files to
 		'uploaded'       : null, // Callback function fired when files have been uploaded - defaults to methods.uploaded
 		'dropClass' 	 : 'file-drop', // Default class for the drop div
@@ -28,16 +29,16 @@
 	var $this = null;
 	var xhr = new XMLHttpRequest();
 	var formData = new FormData();
-	
+
 	var methods = {
 		init : function(options) { // Initialises the plugin
 			return $(this).each(function() {
 				$this = $(this);
 				if (options) $.extend(settings, options);
-				
+
 				// Default callback
 				if (settings.uploaded === null) settings.uploaded = methods.uploaded;
-				
+
 				if (methods.supported()) {
 					methods.createDropDiv();
 					methods.bindEvents();
@@ -50,7 +51,7 @@
 		createDropDiv : function() { // Creates the div that files can be dropped on to
 			$dropDiv = $('<div>').addClass(settings.dropClass)
 				.html(settings.defaultText);
-			
+
 			$this.after($dropDiv);
 		},
 		bindEvents : function() { // Bind plugin events
@@ -65,19 +66,27 @@
 			var files = e.originalEvent.target.files || e.originalEvent.dataTransfer.files;
 			for (var i = 0, f; f = files[i]; i++) {
 				formData.append(f.name, f); // Append each files to the form data
+				if (settings.method === 'one') {
+					formData = new FormData();
+					formData.append(f.name, f);
+					methods.sendFormData(i, files.length);
+				}
 			}
-			methods.sendFormData();
+			if (settings.method === 'batch')
+				methods.sendFormData(files.length, files.length);
 			return false;
 		},
-		sendFormData : function() { // Sends (POST) populated form data to the upload URL
-			 xhr.open('POST', settings.uploadUrl, true);
-			 xhr.onreadystatechange = methods.xhrStateChange;
-			 xhr.send(formData);
-			 formData = new FormData(); // Reset form data
+		sendFormData : function(index, total) { // Sends (POST) populated form data to the upload URL
+			xhr.open('POST', settings.uploadUrl, true);
+			xhr.onreadystatechange = function () {
+	 			methods.xhrStateChange(index, total);
+			};
+			xhr.send(formData);
+			formData = new FormData(); // Reset form data
 		},
-		xhrStateChange : function() { // Used to call the callback when appropriate
+		xhrStateChange : function(index, total) { // Used to call the callback when appropriate
 			if (xhr.readyState === 4 && xhr.status === 200) {
-				settings.uploaded(xhr.response);
+				settings.uploaded(xhr.response, index, total);
 			}
 		},
 		uploaded : function(resp) { // Default callback
@@ -86,7 +95,7 @@
 		dragHover : function(e) { // Fired when a file is dragged over the drop area
 			e.stopPropagation();
 			e.preventDefault();
-			
+
 			// Add/remove class dropHoverClass to the drop area
 			if ($this.next().hasClass(settings.dropHoverClass) || e.type == 'drop' || e.type == 'change') {
 				$this.next().removeClass(settings.dropHoverClass)
@@ -104,7 +113,7 @@
 			return false;
 		}
 	};
-	
+
 	$.fn.dropUpload = function(method) {
 		if (methods[method]) {
 			return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
